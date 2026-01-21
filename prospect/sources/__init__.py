@@ -1,12 +1,13 @@
 from .galaxy_basis import *
 from .agnssp_basis import *
-from .dl2014_basis import *
-from .dale2014_basis import *
-from .casey2012_basis import *
-from .dl2007_basis import *
-from .themis_basis import *
+from .cigale_dust_basis import CigaleDustSSPBasis
+from .nenkova import NenkovaTorusTemplates
+from .fsps_dl2007 import FSPSDL2007Templates
+
+# Old individual basis classes moved to deprecated/
+# Use CigaleDustSSPBasis(dust_emission_model='...') instead
 
 __all__ = ["CSPSpecBasis", "SSPBasis",
            "FastStepBasis", "AGNSSPBasis",
-           "DL2014SSPBasis", "Dale2014SSPBasis", "Casey2012SSPBasis",
-           "DL2007CigaleSSPBasis", "ThemisSSPBasis"]
+           "CigaleDustSSPBasis",
+           "NenkovaTorusTemplates", "FSPSDL2007Templates"]
