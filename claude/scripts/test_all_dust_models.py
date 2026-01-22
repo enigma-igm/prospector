@@ -40,7 +40,7 @@ from prospect.models.sedmodel import SpecModel
 from prospect.models.priors import TopHat
 from prospect.fitting import lnprobfn
 from prospect.sources import SSPBasis
-from prospect.sources.cigale_dust_basis import CigaleDustSSPBasis
+from prospect.sources.cigale_duste_basis import CigaleDustSSPBasis
 
 
 # =============================================================================

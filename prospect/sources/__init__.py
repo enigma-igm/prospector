@@ -1,6 +1,6 @@
 from .galaxy_basis import *
 from .agnssp_basis import *
-from .cigale_dust_basis import CigaleDustSSPBasis
+from .cigale_duste_basis import CigaleDustSSPBasis
 from .cigale_duste import NenkovaTorusTemplates, FSPSDL2007Templates
 
 # Old individual basis classes moved to deprecated/
