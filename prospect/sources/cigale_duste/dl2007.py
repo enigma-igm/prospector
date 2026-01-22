@@ -21,6 +21,7 @@ Reference:
 
 import os
 import numpy as np
+from importlib.resources import files
 
 __all__ = ["DL2007Templates"]
 
@@ -47,8 +48,8 @@ class DL2007Templates:
     Parameters
     ----------
     template_file : str, optional
-        Path to the templates.npz file. If not specified, looks in the
-        default location (prospect/sources/dust_data/dl2007/templates.npz)
+        Path to the templates.npz file. If not specified, uses importlib.resources
+        to locate data/cigale_duste_templates/dl2007/templates.npz
 
     Attributes
     ----------
@@ -77,10 +78,9 @@ class DL2007Templates:
             return
 
         if template_file is None:
-            template_file = os.path.join(
-                os.path.dirname(__file__),
-                'dust_data', 'dl2007', 'templates.npz'
-            )
+            # Use importlib.resources to get package data directory
+            # Go up from prospect package to repository root, then into data/
+            template_file = files('prospect').parent / 'data' / 'cigale_duste_templates' / 'dl2007' / 'templates.npz'
 
         self._load_templates(template_file)
         self._initialized = True
@@ -91,16 +91,18 @@ class DL2007Templates:
 
         Parameters
         ----------
-        filepath : str
-            Path to templates.npz file
+        filepath : str or Traversable
+            Path to templates.npz file (string or importlib.resources Traversable)
         """
-        if not os.path.exists(filepath):
+        # Convert to string path for os.path.exists() and numpy.load()
+        filepath_str = str(filepath)
+        if not os.path.exists(filepath_str):
             raise FileNotFoundError(
-                f"DL2007 template file not found: {filepath}\n"
+                f"DL2007 template file not found: {filepath_str}\n"
                 "Run scripts/build_dl2007_templates.py to generate templates."
             )
 
-        data = np.load(filepath)
+        data = np.load(filepath_str)
         self.wavelength = data['wavelength']  # Angstroms
         self.qpah_values = data['qpah_values']
         self.umin_values = data['umin_values']

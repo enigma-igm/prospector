@@ -12,7 +12,7 @@ Reference:
 """
 
 import numpy as np
-from .fake_fsps import agn_torus
+from ..fake_fsps import agn_torus
 
 __all__ = ["NenkovaTorusTemplates"]
 
@@ -92,7 +92,7 @@ class NenkovaTorusTemplates:
 
         # Integrate: L_total = integral of f_nu d_nu
         # Since nu decreases as wave increases, we need negative sign
-        L_total = -np.trapz(raw_template, nu)
+        L_total = -np.trapezoid(raw_template, nu)
 
         # Normalize so integral = 1 L_sun
         if L_total > 0:

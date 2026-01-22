@@ -1,42 +1,32 @@
 """
-Themis (Jones et al. 2017) dust emission templates.
+DL2014 (updated Draine & Li 2007) dust emission templates.
 
 This module provides:
 - Template loading and caching
-- Interpolation in qhac space
+- Interpolation in qpah space
 - Energy normalization (templates normalized to 1W emitted)
 - Two-component model: (1-gamma)*delta_Umin + gamma*powerlaw(Umin,Umax,alpha)
 
-Themis (The Heterogeneous dust Evolution Model for Interstellar Solids) is
-an alternative dust model to Draine & Li 2007, developed within the DustPedia
-framework. It uses a different dust composition with hydrogenated amorphous
-carbon (HAC) grains instead of PAHs.
-
-Key parameters:
-- qhac: Mass fraction of hydrocarbon solids (HAC), analogous to qpah [0.02 - 0.40]
-- umin: Minimum radiation field intensity [0.10 - 80.0]
-- alpha: Power-law slope for dU/dM distribution [1.0 - 3.0]
-- gamma: Fraction of dust in PDR component [0 - 1]
-- umax: Fixed at 1e7 (not configurable)
-
 Reference:
-    Jones, A.P. et al. (2017), A&A, 602, A46
+    Draine, B.T., & Li, A. (2007), ApJ, 657, 810-837
+    with updates from 2014 (extended alpha parameter range)
 """
 
 import os
 import numpy as np
+from importlib.resources import files
 
-__all__ = ["ThemisTemplates"]
+__all__ = ["DL2014Templates"]
 
 # Speed of light in Angstrom/s
 C_AA = 2.998e18
 
 
-class ThemisTemplates:
+class DL2014Templates:
     """
-    Manager for Themis dust emission templates.
+    Manager for DL2014 dust emission templates.
 
-    This class loads pre-computed Themis templates and provides
+    This class loads pre-computed DL2014 templates and provides
     interpolation to retrieve dust emission spectra for arbitrary
     parameter combinations.
 
@@ -51,17 +41,17 @@ class ThemisTemplates:
     Parameters
     ----------
     template_file : str, optional
-        Path to the templates.npz file. If not specified, looks in the
-        default location (prospect/sources/dust_data/themis/templates.npz)
+        Path to the templates.npz file. If not specified, uses importlib.resources
+        to locate data/cigale_duste_templates/dl2014/templates.npz
 
     Attributes
     ----------
     wavelength : ndarray
         Template wavelength grid in Angstroms
-    qhac_values : ndarray
-        Available qhac values [0.02 - 0.40]
+    qpah_values : ndarray
+        Available qpah values [0.47 - 7.32]
     umin_values : ndarray
-        Available Umin values [0.10 - 80.0]
+        Available Umin values [0.10 - 50.0]
     alpha_values : ndarray
         Available alpha values [1.0 - 3.0]
     """
@@ -81,10 +71,9 @@ class ThemisTemplates:
             return
 
         if template_file is None:
-            template_file = os.path.join(
-                os.path.dirname(__file__),
-                'dust_data', 'themis', 'templates.npz'
-            )
+            # Use importlib.resources to get package data directory
+            # Go up from prospect package to repository root, then into data/
+            template_file = files('prospect').parent / 'data' / 'cigale_duste_templates' / 'dl2014' / 'templates.npz'
 
         self._load_templates(template_file)
         self._initialized = True
@@ -95,33 +84,35 @@ class ThemisTemplates:
 
         Parameters
         ----------
-        filepath : str
-            Path to templates.npz file
+        filepath : str or Traversable
+            Path to templates.npz file (string or importlib.resources Traversable)
         """
-        if not os.path.exists(filepath):
+        # Convert to string path for os.path.exists() and numpy.load()
+        filepath_str = str(filepath)
+        if not os.path.exists(filepath_str):
             raise FileNotFoundError(
-                f"Themis template file not found: {filepath}\n"
-                "Run scripts/build_themis_templates.py to generate templates."
+                f"DL2014 template file not found: {filepath_str}\n"
+                "Run scripts/build_dl2014_templates.py to generate templates."
             )
 
-        data = np.load(filepath)
+        data = np.load(filepath_str)
         self.wavelength = data['wavelength']  # Angstroms
-        self.qhac_values = data['qhac_values']
+        self.qpah_values = data['qpah_values']
         self.umin_values = data['umin_values']
         self.alpha_values = data['alpha_values']
-        self._templates_minmin = data['templates_minmin']  # (qhac, umin, wave)
-        self._templates_minmax = data['templates_minmax']  # (qhac, umin, alpha, wave)
+        self._templates_minmin = data['templates_minmin']  # (qpah, umin, wave)
+        self._templates_minmax = data['templates_minmax']  # (qpah, umin, alpha, wave)
 
-    def get_template(self, qhac, umin, alpha, gamma, target_wave=None):
+    def get_template(self, qpah, umin, alpha, gamma, target_wave=None):
         """
-        Get Themis dust emission spectrum for given parameters.
+        Get DL2014 dust emission spectrum for given parameters.
 
         Parameters
         ----------
-        qhac : float
-            HAC mass fraction [0.02 - 0.40]
+        qpah : float
+            PAH mass fraction [0.47 - 7.32]
         umin : float
-            Minimum radiation field intensity [0.10 - 80.0]
+            Minimum radiation field intensity [0.10 - 50.0]
         alpha : float
             Power-law slope for dU/dM distribution [1.0 - 3.0]
         gamma : float
@@ -139,53 +130,41 @@ class ThemisTemplates:
         emissivity : float
             Emissivity in L_sun (integral of spec over frequency)
         """
-        # Find bracketing qhac indices for interpolation
-        qhac_idx = np.searchsorted(self.qhac_values, qhac)
-        qhac_idx = np.clip(qhac_idx, 1, len(self.qhac_values) - 1)
+        # Find bracketing qpah indices for interpolation
+        qpah_idx = np.searchsorted(self.qpah_values, qpah)
+        qpah_idx = np.clip(qpah_idx, 1, len(self.qpah_values) - 1)
 
         # Find nearest umin and alpha indices
         umin_idx = np.argmin(np.abs(self.umin_values - umin))
         alpha_idx = np.argmin(np.abs(self.alpha_values - alpha))
 
-        # Linear interpolation in qhac
-        q0 = self.qhac_values[qhac_idx - 1]
-        q1 = self.qhac_values[qhac_idx]
+        # Linear interpolation in qpah
+        q0 = self.qpah_values[qpah_idx - 1]
+        q1 = self.qpah_values[qpah_idx]
         if q1 != q0:
-            f = (qhac - q0) / (q1 - q0)
+            f = (qpah - q0) / (q1 - q0)
             f = np.clip(f, 0.0, 1.0)  # Clamp to avoid extrapolation issues
         else:
             f = 0.0
 
-        spec_minmin = (1 - f) * self._templates_minmin[qhac_idx - 1, umin_idx, :] + \
-                      f * self._templates_minmin[qhac_idx, umin_idx, :]
-        spec_minmax = (1 - f) * self._templates_minmax[qhac_idx - 1, umin_idx, alpha_idx, :] + \
-                      f * self._templates_minmax[qhac_idx, umin_idx, alpha_idx, :]
+        spec_minmin = (1 - f) * self._templates_minmin[qpah_idx - 1, umin_idx, :] + \
+                      f * self._templates_minmin[qpah_idx, umin_idx, :]
+        spec_minmax = (1 - f) * self._templates_minmax[qpah_idx - 1, umin_idx, alpha_idx, :] + \
+                      f * self._templates_minmax[qpah_idx, umin_idx, alpha_idx, :]
 
         # Two-component model
-        # spec is in W/nm (F_lambda) per kg of dust
         spec = (1 - gamma) * spec_minmin + gamma * spec_minmax
 
-        # Convert from F_lambda (W/nm) to F_nu (W/Hz)
-        # F_nu = F_lambda * lambda^2 / c
-        # wavelength is in Angstroms, convert to nm for calculation
-        wave_nm = self.wavelength / 10.0  # Angstrom to nm
-        C_NM = 2.998e17  # Speed of light in nm/s
-        spec_fnu_W = spec * (wave_nm ** 2) / C_NM  # W/Hz per kg of dust
-
-        # Compute emissivity by integrating F_nu over frequency
-        # This gives total power in W
+        # Compute emissivity (integral in L_sun)
+        # spec is in L_sun/Hz, integrate over frequency
         nu = C_AA / self.wavelength  # Hz
-        emissivity = -np.trapz(spec_fnu_W, nu)  # W (negative because nu decreases)
+        emissivity = -np.trapz(spec, nu)  # L_sun (negative because nu decreases with wave)
 
-        # Convert to L_sun/Hz and normalize so integral = 1 L_sun
-        L_SUN = 3.846e26  # Solar luminosity in W
-        spec_fnu_Lsun = spec_fnu_W / L_SUN  # L_sun/Hz per kg of dust
-
+        # Normalize to 1W emitted (as 1 L_sun emitted)
         if emissivity > 0:
-            emissivity_Lsun = emissivity / L_SUN  # L_sun per kg of dust
-            spec_normalized = spec_fnu_Lsun / emissivity_Lsun  # Normalized to 1 L_sun
+            spec_normalized = spec / emissivity
         else:
-            spec_normalized = spec_fnu_Lsun
+            spec_normalized = spec
 
         wave_out = self.wavelength
         if target_wave is not None:
@@ -199,7 +178,7 @@ class ThemisTemplates:
         """
         Compute mean radiation field intensity <U>.
 
-        Following similar equations to DL2007/DL2014.
+        Following Draine & Li 2007 Eq. 6 and 15.
 
         Parameters
         ----------
@@ -234,36 +213,33 @@ class ThemisTemplates:
 
         return umean
 
-    def get_nearest_alpha(self, alpha):
+    def compute_dust_mass(self, L_absorbed, qpah, umin, alpha, gamma):
         """
-        Get the nearest available alpha value.
+        Compute dust mass from absorbed luminosity.
 
         Parameters
         ----------
-        alpha : float
-            Requested alpha value
-
-        Returns
-        -------
-        alpha_nearest : float
-            Nearest available alpha value
-        """
-        idx = np.argmin(np.abs(self.alpha_values - alpha))
-        return self.alpha_values[idx]
-
-    def get_nearest_umin(self, umin):
-        """
-        Get the nearest available umin value.
-
-        Parameters
-        ----------
+        L_absorbed : float
+            Absorbed luminosity in L_sun
+        qpah : float
+            PAH mass fraction
         umin : float
-            Requested umin value
+            Minimum radiation field intensity
+        alpha : float
+            Power-law slope
+        gamma : float
+            PDR fraction
 
         Returns
         -------
-        umin_nearest : float
-            Nearest available umin value
+        dust_mass : float
+            Dust mass in solar masses
         """
-        idx = np.argmin(np.abs(self.umin_values - umin))
-        return self.umin_values[idx]
+        _, _, emissivity = self.get_template(qpah, umin, alpha, gamma)
+        # emissivity is in L_sun per unit mass of dust template
+        # Need to convert using the normalization
+        # For now, return in L_sun / emissivity which gives relative mass
+        if emissivity > 0:
+            return L_absorbed / emissivity
+        else:
+            return 0.0

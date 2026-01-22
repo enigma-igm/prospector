@@ -32,12 +32,14 @@ from .galaxy_basis import FastStepBasis
 from .fake_fsps import add_dust_with_absorption_tracking, add_igm
 
 # Import all template classes
-from .dl2007 import DL2007Templates
-from .dl2014 import DL2014Templates
-from .dale2014 import Dale2014Templates
-from .casey2012 import Casey2012Model
-from .themis import ThemisTemplates
-from .fsps_dl2007 import FSPSDL2007Templates
+from .cigale_duste import (
+    DL2007Templates,
+    DL2014Templates,
+    Dale2014Templates,
+    Casey2012Model,
+    ThemisTemplates,
+    FSPSDL2007Templates,
+)
 
 __all__ = ["CigaleDustSSPBasis"]
 
