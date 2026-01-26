@@ -148,6 +148,8 @@ class SpecModel(ProspectorParams):
         # cache eline mle info
         self._ln_eline_penalty = 0
         self._eline_lum_mle = self._eline_lum.copy()
+        self._eline_lum_model = self._eline_lum.copy()  # Physical model prediction (never overwritten by marginalization)
+        self._eline_lum_marg = np.full_like(self._eline_lum, np.nan)  # NaN = not marginalized, real value = marginalized
         self._eline_lum_covar = np.diag((self.params.get('eline_prior_width', 0.0) *
                                          self._eline_lum)**2)
 
@@ -720,6 +722,8 @@ class SpecModel(ProspectorParams):
         self._eline_lum[idx] = alpha_bar / linecal
         # store new Gaussian uncertainties in physical units
         self._eline_lum_covar[np.ix_(idx, idx)] = sigma_alpha_bar / linecal[:, None] / linecal[None, :]
+        # Store marginalized MAP values (only for lines actually marginalized; others remain NaN)
+        self._eline_lum_marg[idx] = alpha_bar / linecal
 
         # return the maximum-likelihood line spectrum for this observation in observed units
         self._eline_lum_mle[idx] = alpha_hat / linecal
@@ -1119,6 +1123,8 @@ class AGNPolySpecModel(SpecModel):
         # cache eline mle info
         self._ln_eline_penalty = 0
         self._eline_lum_mle = self._eline_lum.copy()
+        self._eline_lum_model = self._eline_lum.copy()  # Physical model prediction (never overwritten by marginalization)
+        self._eline_lum_marg = np.full_like(self._eline_lum, np.nan)  # NaN = not marginalized, real value = marginalized
         self._eline_lum_covar = np.diag((self.params.get('eline_prior_width', 0.0) *
                                          self._eline_lum)**2)
 
