@@ -169,7 +169,7 @@ def compute_absorbed_luminosity(wave, intrinsic_spec, attenuated_spec):
     delta_spec = intrinsic_spec - attenuated_spec
 
     # Integrate over frequency (note: nu decreases as wave increases)
-    L_absorbed = -np.trapz(delta_spec, nu)  # L_sun
+    L_absorbed = -np.trapezoid(delta_spec, nu)  # L_sun
 
     return max(0.0, L_absorbed)  # Ensure non-negative
 
