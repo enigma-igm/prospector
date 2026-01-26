@@ -130,7 +130,7 @@ def test_spectrum_comparison():
     }
     
     wave_python, spec_python, mfrac = sps_python.get_galaxy_spectrum(**params_python)
-    L_dust_python = sps_python.L_dust * mass.sum()
+    L_dust_python = sps_python.L_ism_duste * mass.sum()
     
     print(f"Python implementation dust luminosity: {L_dust_python:.6e} L_sun")
     

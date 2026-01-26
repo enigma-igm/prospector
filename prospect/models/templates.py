@@ -261,150 +261,167 @@ _dust_emission_ = {"add_dust_emission": add_duste,
 TemplateLibrary["dust_emission"] = (_dust_emission_,
                                     ("The set of (fixed) dust emission parameters."))
 
+# =============================================================================
+# CIGALE DUST EMISSION TEMPLATES
+# =============================================================================
+# These templates are for use with CigaleDustSSPBasis and provide dust emission
+# from various models ported from CIGALE. All parameters use the 'duste_' prefix
+# for consistency with FSPS/Prospector conventions.
+#
+# Available templates:
+#   - dust_emission_fsps_dl2007: FSPS native Draine & Li 2007 (alias for dust_emission for backward compatibility)
+#   - dust_emission_dl2007: CIGALE Draine & Li 2007
+#   - dust_emission_dl2014: CIGALE Draine & Li 2014 (adds alpha parameter)
+#   - dust_emission_dale2014: CIGALE Dale et al. 2014 (single alpha parameter)
+#   - dust_emission_casey2012: CIGALE Casey 2012 analytical model
+#   - dust_emission_themis: CIGALE THEMIS model (Jones et al. 2017)
+#
+# Parameter ranges are from CIGALE source code (pcigale/sed_modules/*.py)
+# =============================================================================
+
 # --------------------------
-# --- DL2014 Dust Emission ----
+# --- FSPS DL2007 (alias) ---
 # --------------------------
-# Updated Draine & Li (2007) dust emission model from CIGALE
+# This is an alias for the standard dust_emission template above.
+# Use with CigaleDustSSPBasis(dust_emission_model='fsps_dl2007')
+TemplateLibrary["dust_emission_fsps_dl2007"] = (_dust_emission_,
+    ("FSPS native Draine & Li 2007 dust emission. "
+     "Alias for 'dust_emission' template. "
+     "Parameters: duste_qpah (0.5-7.0), duste_umin (0.1-25), duste_gamma (1e-3-0.15)."))
+
+# --------------------------
+# --- DL2007 CIGALE ---
+# --------------------------
+# Draine & Li (2007) dust emission using CIGALE templates
+# Key difference from FSPS: variable umax parameter, alpha fixed at 2.0
+# The prospector DL2007 templates have modifications near the 3.3um PAH feature, whereas
+# CIGALE DL2007 templates use the original Draine and Li 2007 templates.
+# CIGALE source: pcigale/sed_modules/dl2007.py
+# qpah: discrete values 0.47, 1.12, 1.77, 2.50, 3.19, 3.90, 4.58
+
+_dust_emission_dl2007_ = {
+    "duste_qpah": {"N": 1, "isfree": False,
+                   "init": 4.0, "units": "Percent mass fraction of PAHs",
+                   "prior": priors.TopHat(mini=0.5, maxi=7.0)},
+    "duste_umin": {"N": 1, "isfree": False,
+                   "init": 1.0, "units": "Minimum radiation field (MMP83 units)",
+                   "prior": priors.TopHat(mini=0.1, maxi=25.0)},
+    "duste_umax": {"N": 1, "isfree": False,
+                   "init": 1e6, "units": "Maximum radiation field",
+                   "prior": priors.TopHat(mini=1e3, maxi=1e6)},
+    "duste_gamma": {"N": 1, "isfree": False,
+                    "init": 1e-3, "units": "Fraction in high-U (PDR) component",
+                    "prior": priors.LogUniform(mini=1e-3, maxi=0.15)},
+}
+
+TemplateLibrary["dust_emission_dl2007"] = (_dust_emission_dl2007_,
+    ("CIGALE Draine & Li 2007 dust emission. "
+     "Use with CigaleDustSSPBasis(dust_emission_model='dl2007'). "
+     "Same priors as fsps_dl2007 plus duste_umax (1e3-1e6). "
+     "Alpha is fixed at 2.0 (unlike DL2014)."))
+
+# --------------------------
+# --- DL2014 ---
+# --------------------------
+# Updated Draine & Li (2007) dust emission from CIGALE
 # Key difference: user-configurable alpha parameter (power-law slope)
+# CIGALE source: pcigale/sed_modules/dl2014.py
+# qpah: continuous 0.47-7.32, umin: 0.1-50, alpha: 1.0-3.0
 
-dl2014_qpah = {"N": 1, "isfree": False,
-               "init": 2.5, "units": "Mass fraction of PAHs",
-               "prior": priors.TopHat(mini=0.47, maxi=7.32)}
+_dust_emission_dl2014_ = {
+    "duste_qpah": {"N": 1, "isfree": False,
+                   "init": 2.5, "units": "Percent mass fraction of PAHs",
+                   "prior": priors.TopHat(mini=0.47, maxi=7.32)},
+    "duste_umin": {"N": 1, "isfree": False,
+                   "init": 1.0, "units": "Minimum radiation field (MMP83 units)",
+                   "prior": priors.TopHat(mini=0.1, maxi=50.0)},
+    "duste_alpha": {"N": 1, "isfree": False,
+                    "init": 2.0, "units": "Power-law slope dU/dM ~ U^alpha",
+                    "prior": priors.TopHat(mini=1.0, maxi=3.0)},
+    "duste_gamma": {"N": 1, "isfree": False,
+                    "init": 0.1, "units": "Fraction in high-U (PDR) component",
+                    "prior": priors.LogUniform(mini=1e-3, maxi=1.0)},
+}
 
-dl2014_umin = {"N": 1, "isfree": False,
-               "init": 1.0, "units": "Minimum radiation field intensity (MMP83 units)",
-               "prior": priors.TopHat(mini=0.1, maxi=50.0)}
-
-dl2014_alpha = {"N": 1, "isfree": False,
-                "init": 2.0, "units": "Power-law slope dU/dM",
-                "prior": priors.TopHat(mini=1.0, maxi=3.0)}
-
-dl2014_gamma = {"N": 1, "isfree": False,
-                "init": 0.1, "units": "Fraction of dust in PDR (high-U) component",
-                "prior": priors.LogUniform(mini=1e-3, maxi=1.0)}
-
-_dl2014_dust_emission_ = {"dl2014_qpah": dl2014_qpah,
-                          "dl2014_umin": dl2014_umin,
-                          "dl2014_alpha": dl2014_alpha,
-                          "dl2014_gamma": dl2014_gamma}
-
-TemplateLibrary["dl2014_dust_emission"] = (_dl2014_dust_emission_,
-    ("DL2014 (updated Draine & Li 2007) dust emission parameters. "
-     "Use with DL2014SSPBasis source class instead of CSPSpecBasis. "
-     "Key difference from standard dust_emission: alpha is configurable."))
+TemplateLibrary["dust_emission_dl2014"] = (_dust_emission_dl2014_,
+    ("CIGALE Draine & Li 2014 dust emission. "
+     "Use with CigaleDustSSPBasis(dust_emission_model='dl2014'). "
+     "Parameters: duste_qpah (0.47-7.32), duste_umin (0.1-50), duste_alpha (1.0-3.0), duste_gamma (0-1)."))
 
 # --------------------------
-# --- Dale2014 Dust Emission ----
+# --- Dale2014 ---
 # --------------------------
 # Dale et al. (2014) single-parameter dust emission model
 # Simpler than DL2014 - only one parameter controls IR SED shape
+# CIGALE source: pcigale/sed_modules/dale2014.py
+# alpha: 0.0625-4.0 (discrete grid with 0.0625 spacing)
 
-dale2014_alpha = {"N": 1, "isfree": False,
-                  "init": 2.0, "units": "Power-law slope for dM_d(U) ~ U^-alpha",
-                  "prior": priors.TopHat(mini=0.0625, maxi=4.0)}
+_dust_emission_dale2014_ = {
+    "duste_alpha": {"N": 1, "isfree": False,
+                    "init": 2.0, "units": "Power-law slope dM_d(U) ~ U^-alpha",
+                    "prior": priors.TopHat(mini=0.0625, maxi=4.0)},
+}
 
-_dale2014_dust_emission_ = {"dale2014_alpha": dale2014_alpha}
-
-TemplateLibrary["dale2014_dust_emission"] = (_dale2014_dust_emission_,
-    ("Dale et al. (2014) single-parameter dust emission model. "
-     "Use with Dale2014SSPBasis source class. "
+TemplateLibrary["dust_emission_dale2014"] = (_dust_emission_dale2014_,
+    ("CIGALE Dale et al. 2014 single-parameter dust emission. "
+     "Use with CigaleDustSSPBasis(dust_emission_model='dale2014'). "
      "Lower alpha (~0.5-1): warmer dust, stronger mid-IR. "
      "Higher alpha (~3-4): cooler dust, stronger far-IR."))
 
 # --------------------------
-# --- Casey2012 Dust Emission ----
+# --- Casey2012 ---
 # --------------------------
 # Casey (2012) analytical dust emission model
 # Combines modified blackbody + mid-IR power-law
+# CIGALE source: pcigale/sed_modules/casey2012.py
+# Parameters have no hard limits in CIGALE (minvalue=0), using physical ranges
 
-casey2012_temperature = {"N": 1, "isfree": False,
-                         "init": 35.0, "units": "Dust temperature in Kelvin",
-                         "prior": priors.TopHat(mini=10.0, maxi=100.0)}
+_dust_emission_casey2012_ = {
+    "duste_tdust": {"N": 1, "isfree": False,
+                    "init": 35.0, "units": "Dust temperature in Kelvin",
+                    "prior": priors.TopHat(mini=10.0, maxi=200.0)},
+    "duste_beta": {"N": 1, "isfree": False,
+                   "init": 1.6, "units": "Dust emissivity index",
+                   "prior": priors.TopHat(mini=1.0, maxi=2.5)},
+    "duste_alpha": {"N": 1, "isfree": False,
+                    "init": 2.0, "units": "Mid-IR power-law slope",
+                    "prior": priors.TopHat(mini=1.0, maxi=3.0)},
+}
 
-casey2012_beta = {"N": 1, "isfree": False,
-                  "init": 1.6, "units": "Dust emissivity index",
-                  "prior": priors.TopHat(mini=0.5, maxi=3.0)}
-
-casey2012_alpha = {"N": 1, "isfree": False,
-                   "init": 2.0, "units": "Mid-IR power-law slope",
-                   "prior": priors.TopHat(mini=0.5, maxi=4.0)}
-
-_casey2012_dust_emission_ = {"casey2012_temperature": casey2012_temperature,
-                             "casey2012_beta": casey2012_beta,
-                             "casey2012_alpha": casey2012_alpha}
-
-TemplateLibrary["casey2012_dust_emission"] = (_casey2012_dust_emission_,
-    ("Casey (2012) analytical dust emission model. "
-     "Use with Casey2012SSPBasis source class. "
-     "Combines modified blackbody (temperature, beta) with mid-IR power-law (alpha). "
+TemplateLibrary["dust_emission_casey2012"] = (_dust_emission_casey2012_,
+    ("CIGALE Casey 2012 analytical dust emission. "
+     "Use with CigaleDustSSPBasis(dust_emission_model='casey2012'). "
+     "Combines modified blackbody (tdust, beta) with mid-IR power-law (alpha). "
      "Good for high-z galaxies with limited FIR photometry."))
 
 # --------------------------
-# --- DL2007 CIGALE Dust Emission ----
-# --------------------------
-# Draine & Li (2007) dust emission using CIGALE templates
-# This provides an alternative to FSPS's built-in DL2007 for comparison testing
-# Key differences: variable umax, alpha fixed at 2.0
-
-dl2007_cigale_qpah = {"N": 1, "isfree": False,
-                      "init": 2.50, "units": "Mass fraction of PAHs",
-                      "prior": priors.TopHat(mini=0.47, maxi=4.58)}
-
-dl2007_cigale_umin = {"N": 1, "isfree": False,
-                      "init": 1.0, "units": "Minimum radiation field intensity (MMP83 units)",
-                      "prior": priors.TopHat(mini=0.1, maxi=25.0)}
-
-dl2007_cigale_umax = {"N": 1, "isfree": False,
-                      "init": 1e6, "units": "Maximum radiation field intensity",
-                      "prior": priors.TopHat(mini=1e3, maxi=1e6)}
-
-dl2007_cigale_gamma = {"N": 1, "isfree": False,
-                       "init": 0.1, "units": "Fraction of dust in PDR (high-U) component",
-                       "prior": priors.LogUniform(mini=1e-3, maxi=1.0)}
-
-_dl2007_cigale_dust_emission_ = {"dl2007_cigale_qpah": dl2007_cigale_qpah,
-                                 "dl2007_cigale_umin": dl2007_cigale_umin,
-                                 "dl2007_cigale_umax": dl2007_cigale_umax,
-                                 "dl2007_cigale_gamma": dl2007_cigale_gamma}
-
-TemplateLibrary["dl2007_cigale_dust_emission"] = (_dl2007_cigale_dust_emission_,
-    ("Draine & Li (2007) dust emission using CIGALE templates. "
-     "Use with DL2007CigaleSSPBasis source class for comparison with FSPS version. "
-     "Parameters: qpah (0.47-4.58), umin (0.1-25), umax (1e3-1e6), gamma (0-1). "
-     "Alpha is fixed at 2.0 (unlike DL2014)."))
-
-# --------------------------
-# --- Themis Dust Emission ----
+# --- THEMIS ---
 # --------------------------
 # Jones et al. (2017) THEMIS dust emission model from CIGALE
-# Alternative to Draine & Li dust models with different grain composition
+# Alternative to Draine & Li models with different grain composition (HAC vs PAH)
+# CIGALE source: pcigale/sed_modules/themis.py
+# qhac: 0.02-0.40 (discrete), umin: 0.1-80, alpha: 1.0-3.0
 
-themis_qhac = {"N": 1, "isfree": False,
-               "init": 0.17, "units": "Mass fraction of hydrocarbon solids (HAC)",
-               "prior": priors.TopHat(mini=0.02, maxi=0.40)}
+_dust_emission_themis_ = {
+    "duste_qhac": {"N": 1, "isfree": False,
+                   "init": 0.17, "units": "Mass fraction of hydrocarbon solids (HAC)",
+                   "prior": priors.TopHat(mini=0.02, maxi=0.40)},
+    "duste_umin": {"N": 1, "isfree": False,
+                   "init": 1.0, "units": "Minimum radiation field (MMP83 units)",
+                   "prior": priors.TopHat(mini=0.1, maxi=80.0)},
+    "duste_alpha": {"N": 1, "isfree": False,
+                    "init": 2.0, "units": "Power-law slope dU/dM ~ U^alpha",
+                    "prior": priors.TopHat(mini=1.0, maxi=3.0)},
+    "duste_gamma": {"N": 1, "isfree": False,
+                    "init": 0.1, "units": "Fraction in high-U (PDR) component",
+                    "prior": priors.LogUniform(mini=1e-3, maxi=1.0)},
+}
 
-themis_umin = {"N": 1, "isfree": False,
-               "init": 1.0, "units": "Minimum radiation field intensity (MMP83 units)",
-               "prior": priors.TopHat(mini=0.1, maxi=80.0)}
-
-themis_alpha = {"N": 1, "isfree": False,
-                "init": 2.0, "units": "Power-law slope dU/dM",
-                "prior": priors.TopHat(mini=1.0, maxi=3.0)}
-
-themis_gamma = {"N": 1, "isfree": False,
-                "init": 0.1, "units": "Fraction of dust in PDR (high-U) component",
-                "prior": priors.LogUniform(mini=1e-3, maxi=1.0)}
-
-_themis_dust_emission_ = {"themis_qhac": themis_qhac,
-                          "themis_umin": themis_umin,
-                          "themis_alpha": themis_alpha,
-                          "themis_gamma": themis_gamma}
-
-TemplateLibrary["themis_dust_emission"] = (_themis_dust_emission_,
-    ("Themis (Jones et al. 2017) dust emission model from CIGALE. "
-     "Use with ThemisSSPBasis source class. "
+TemplateLibrary["dust_emission_themis"] = (_dust_emission_themis_,
+    ("CIGALE THEMIS (Jones et al. 2017) dust emission. "
+     "Use with CigaleDustSSPBasis(dust_emission_model='themis'). "
      "Uses hydrocarbon solids (HAC) instead of PAHs. "
-     "Parameters: qhac (0.02-0.40), umin (0.1-80), alpha (1.0-3.0), gamma (0-1). "
+     "Parameters: duste_qhac (0.02-0.40), duste_umin (0.1-80), duste_alpha (1.0-3.0), duste_gamma (0-1). "
      "Umax is fixed at 1e7."))
 
 # --------------------------
@@ -607,7 +624,7 @@ preg = {'N': 1, 'isfree': False, 'init': 0.}
 polymax = 0.1 / (np.arange(npoly) + 1)
 pcoeffs = {'N': npoly, 'isfree': True,
            'init': np.zeros(npoly),
-           'units': 'ln(f_tru/f_obs)_j=\sum_{i=1}^N poly_coeffs_{i-1} * lambda_j^i',
+           'units': r'ln(f_tru/f_obs)_j=\sum_{i=1}^N poly_coeffs_{i-1} * lambda_j^i',
            'prior': priors.TopHat(mini=-polymax, maxi=polymax)}
 
 _polyopt_ = {"polyorder": porder,         # order of polynomial to optimize

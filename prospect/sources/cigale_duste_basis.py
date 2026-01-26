@@ -74,7 +74,7 @@ DUST_MODELS = {
     'themis': {
         'class': ThemisTemplates,
         'params': ['qhac', 'umin', 'alpha', 'gamma'],
-        'prefix': 'themis',
+        'prefix': 'duste',
     },
 }
 
@@ -103,11 +103,12 @@ class CigaleDustSSPBasis(FastStepBasis):
     dust_emission_model : str, optional
         Which dust model to use. Options:
         - 'fsps_dl2007': FSPS native D&L 2007 templates (default)
-        - 'dl2007': CIGALE D&L 2007 templates
+        - 'dl2007': CIGALE D&L 2007 templates, which differ slightly from the native FSPS 
+           templates because of modifications to PAH emission at 3.3 microns
         - 'dl2014': CIGALE D&L 2014 templates
-        - 'dale2014': Dale et al. 2014 templates
-        - 'casey2012': Casey 2012 analytical model
-        - 'themis': Jones et al. 2017 THEMIS model
+        - 'dale2014': CIGALE Dale et al. 2014 templates
+        - 'casey2012': CIGALECasey 2012 analytical model
+        - 'themis': CIGALE Jones et al. 2017 THEMIS model
     zcontinuous : int, optional
         The zcontinuous parameter for FSPS (default: 1)
     reserved_params : list, optional
@@ -543,15 +544,35 @@ class CigaleDustSSPBasis(FastStepBasis):
         
         return ewave, elum
     
-    @property
-    def L_absorbed(self):
-        """Absorbed luminosity per unit mass formed (L_sun/Msun)."""
-        return getattr(self, '_L_absorbed', 0.0)
+    # =========================================================================
+    # Energy Balance Properties
+    # =========================================================================
+    # By energy conservation, absorbed luminosity = emitted luminosity.
+    # 
+    # Naming convention: L_{dust_type}_{absorbed/duste}_{source}
+    #   L_ism_absorbed_stellar == L_ism_duste_stellar == L_ism_duste
+    #
+    # Note: Despite 'ism' in the name, this includes both diffuse ISM dust
+    # (dust2) and birth cloud dust (dust1) if enabled.
+    # =========================================================================
     
     @property
-    def L_dust(self):
-        """Dust emission luminosity per unit mass formed (L_sun/Msun).
+    def L_ism_absorbed_stellar(self):
+        """Stellar luminosity absorbed by ISM dust, per unit mass formed (L_sun/Msun)."""
+        return self._L_absorbed
+    
+    @property
+    def L_ism_duste_stellar(self):
+        """ISM dust emission from stellar heating, per unit mass formed (L_sun/Msun).
         
-        By energy balance, this equals L_absorbed.
+        Equals L_ism_absorbed_stellar by energy conservation.
         """
-        return self.L_absorbed
+        return self._L_absorbed
+    
+    @property
+    def L_ism_duste(self):
+        """Total ISM dust emission per unit mass formed (L_sun/Msun).
+        
+        For this class (no AGN), this equals L_ism_duste_stellar.
+        """
+        return self._L_absorbed

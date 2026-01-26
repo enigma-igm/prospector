@@ -192,7 +192,7 @@ def compare_full_spectra(plot=False):
         wave_cigale, spec_cigale, mfrac_cigale = sps_cigale.get_galaxy_spectrum(**cigale_params)
         print(f"  Success! Wavelength range: {wave_cigale.min():.0f} - {wave_cigale.max():.0f} Angstroms")
         print(f"  Stellar mass fraction: {mfrac_cigale:.4f}")
-        print(f"  L_absorbed: {sps_cigale.L_absorbed:.4e} L_sun/Msun")
+        print(f"  L_ism_absorbed_stellar: {sps_cigale.L_ism_absorbed_stellar:.4e} L_sun/Msun")
         print(f"  <U>: {sps_cigale.umean:.2f}")
 
     except Exception as e:
