@@ -515,6 +515,7 @@ class CigaleDustSSPBasis(FastStepBasis):
         # Store diagnostics
         self._L_absorbed = L_absorbed / mtot
         self._line_specific_luminosity = attenuated_lines / mtot
+        self._line_specific_luminosity_nodust = eline_lum / mtot
         
         # Stellar mass fraction from FSPS
         stellar_mass_frac = self.ssp.stellar_mass / mtot
@@ -534,6 +535,29 @@ class CigaleDustSSPBasis(FastStepBasis):
         """
         ewave = self.ssp.emline_wavelengths
         elum = getattr(self, "_line_specific_luminosity", None)
+        
+        if elum is None:
+            elum = self.ssp.emline_luminosity.copy()
+            if elum.ndim > 1:
+                elum = elum[0]
+            mass = np.sum(self.params.get('mass', 1.0))
+            elum /= mass
+        
+        return ewave, elum
+    
+    def get_galaxy_elines_nodust(self):
+        """
+        Get emission line wavelengths and luminosities WITHOUT dust attenuation.
+        
+        Returns
+        -------
+        ewave : ndarray
+            Emission line wavelengths in Angstroms
+        elum : ndarray
+            No-dust specific luminosities in L_sun per Msun formed
+        """
+        ewave = self.ssp.emline_wavelengths
+        elum = getattr(self, "_line_specific_luminosity_nodust", None)
         
         if elum is None:
             elum = self.ssp.emline_luminosity.copy()
